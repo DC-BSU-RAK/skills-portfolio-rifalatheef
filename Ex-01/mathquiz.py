@@ -2,176 +2,198 @@ import tkinter as tk
 from tkinter import messagebox
 import random
 
-# ---------------------------
-# Functions
-# ---------------------------
+# -------------------------
+# ANIMATION FUNCTION
+# -------------------------
+
+def fadeIn(widget, step=0):
+    """Simple fade-in animation for labels."""
+    if step <= 10:
+        color = f"#{step*20:02x}{step*20:02x}ff"  # blue fade
+        widget.config(fg=color)
+        root.after(30, lambda: fadeIn(widget, step + 1))
+
+
+# -------------------------
+# FUNCTIONS
+# -------------------------
 
 def displayMenu():
-    """Display difficulty selection menu."""
-    clear_window()
+    clearWindow()
 
-    title = tk.Label(root, text="🎯 MATHS QUIZ 🎯", font=("Arial", 20, "bold"), fg="#333", bg="#F2F2F2")
-    title.pack(pady=20)
+    title = tk.Label(root, text="DIFFICULTY LEVEL", font=("Arial", 20, "bold"), fg="white", bg="#003366")
+    title.pack(fill="x", pady=10)
 
-    subtitle = tk.Label(root, text="Select Difficulty Level", font=("Arial", 14), bg="#F2F2F2")
-    subtitle.pack(pady=10)
+    fadeIn(title)
 
-    btn_easy = tk.Button(root, text="1. Easy (1-digit)", width=20, font=("Arial", 12),
-                         bg="#C8E6C9", activebackground="#A5D6A7", command=lambda: start_quiz('easy'))
-    btn_easy.pack(pady=8)
+    tk.Button(root, text="1. Easy", width=20, bg="#6699cc", fg="white", command=lambda: startQuiz(1)).pack(pady=5)
+    tk.Button(root, text="2. Moderate", width=20, bg="#336699", fg="white", command=lambda: startQuiz(2)).pack(pady=5)
+    tk.Button(root, text="3. Advanced", width=20, bg="#003366", fg="white", command=lambda: startQuiz(3)).pack(pady=5)
 
-    btn_mod = tk.Button(root, text="2. Moderate (2-digit)", width=20, font=("Arial", 12),
-                        bg="#FFF59D", activebackground="#FFF176", command=lambda: start_quiz('moderate'))
-    btn_mod.pack(pady=8)
-
-    btn_adv = tk.Button(root, text="3. Advanced (4-digit)", width=20, font=("Arial", 12),
-                        bg="#FFAB91", activebackground="#FF8A65", command=lambda: start_quiz('advanced'))
-    btn_adv.pack(pady=8)
-
-    quit_btn = tk.Button(root, text="Exit", width=15, font=("Arial", 11),
-                         bg="#EF9A9A", activebackground="#E57373", command=root.destroy)
-    quit_btn.pack(pady=25)
+    tk.Button(root, text="Quit", bg="red", fg="white", width=10, command=root.destroy).pack(pady=20)
 
 
 def randomInt(level):
-    "Return a random integer based on the difficulty level."""
-    if level == 'easy':
-        return random.randint(1, 9)
-    elif level == 'moderate':
+    if level == 1:
+        return random.randint(0, 9)
+    elif level == 2:
         return random.randint(10, 99)
-    else:
+    elif level == 3:
         return random.randint(1000, 9999)
 
 
 def decideOperation():
-    """Randomly return + or -"""
     return random.choice(['+', '-'])
 
 
 def displayProblem():
-    """Display math question."""
-    clear_window()
-    global num1, num2, op, attempt
+    clearWindow()
 
-    op = decideOperation()
-    num1 = randomInt(difficulty)
-    num2 = randomInt(difficulty)
+    global questionLabel, answerEntry
 
-    question_label = tk.Label(root, text=f"Question {question_number + 1}/10", font=("Arial", 13, "bold"), bg="#F2F2F2")
-    question_label.pack(pady=10)
+    # Top bar: Question number + Score
+    header = tk.Frame(root, bg="#003366")
+    header.pack(fill="x")
 
-    problem_label = tk.Label(root, text=f"{num1} {op} {num2} = ?", font=("Arial", 22, "bold"), fg="#1E88E5", bg="#F2F2F2")
-    problem_label.pack(pady=20)
+    qnum_label = tk.Label(header, text=f"Question {questionNum}/10", font=("Arial", 14, "bold"), fg="white", bg="#003366")
+    qnum_label.pack(side="left", padx=10)
 
-    answer_frame = tk.Frame(root, bg="#F2F2F2")
-    answer_frame.pack(pady=10)
+    score_label = tk.Label(header, text=f"Score: {score}", font=("Arial", 14, "bold"), fg="white", bg="#003366")
+    score_label.pack(side="right", padx=10)
 
-    tk.Label(answer_frame, text="Your Answer: ", font=("Arial", 12), bg="#F2F2F2").pack(side=tk.LEFT, padx=5)
-    answer_entry.delete(0, tk.END)
-    answer_entry.pack(in_=answer_frame, side=tk.LEFT, padx=5)
+    # Fade animation
+    fadeIn(qnum_label)
+    fadeIn(score_label)
 
-    submit_btn = tk.Button(root, text="Submit", font=("Arial", 12), bg="#BBDEFB", activebackground="#90CAF9", command=checkAnswer)
-    submit_btn.pack(pady=15)
+    # Problem text
+    question_text = f"{num1} {operation} {num2} ="
+    questionLabel = tk.Label(root, text=question_text, font=("Arial", 28, "bold"), fg="#003366")
+    questionLabel.pack(pady=30)
+
+    fadeIn(questionLabel)
+
+    # Entry box
+    answerEntry = tk.Entry(root, font=("Arial", 20), justify="center")
+    answerEntry.pack()
+
+    # Submit button
+    tk.Button(root, text="Submit Answer", bg="#336699", fg="white", command=checkAnswer).pack(pady=15)
+
+    # Quit button
+    tk.Button(root, text="Quit", bg="red", fg="white", width=10, command=root.destroy).pack(pady=5)
 
 
-def isCorrect(user_answer):
-    """Check if the user's answer is correct."""
-    correct = num1 + num2 if op == '+' else num1 - num2
-    return user_answer == correct
+def isCorrect(answer):
+    if operation == "+":
+        return answer == (num1 + num2)
+    else:
+        return answer == (num1 - num2)
 
 
 def checkAnswer():
-    """Handle user answer and scoring."""
-    global score, attempt, question_number
+    global attempt, score
 
     try:
-        user_answer = int(answer_entry.get())
-    except ValueError:
-        messagebox.showerror("Invalid Input", "Please enter a valid number.")
+        userAnswer = int(answerEntry.get())
+    except:
+        messagebox.showerror("Error", "Enter a valid number")
         return
 
-    if isCorrect(user_answer):
+    if isCorrect(userAnswer):
         if attempt == 1:
             score += 10
-            messagebox.showinfo("Correct!", "✅ Perfect! You got 10 points.")
+            messagebox.showinfo("Correct", "Correct! +10 points")
         else:
             score += 5
-            messagebox.showinfo("Correct!", "👍 Good job! You got 5 points.")
+            messagebox.showinfo("Correct", "Correct! +5 points")
         nextQuestion()
+
     else:
         if attempt == 1:
-            attempt += 1
-            messagebox.showwarning("Try Again", "❌ Incorrect! You have one more try.")
-            displayProblem()
+            attempt = 2
+            messagebox.showwarning("Incorrect", "Wrong. Try once more!")
         else:
-            messagebox.showinfo("Incorrect", "😕 Wrong again! Moving to the next question.")
+            messagebox.showerror("Incorrect", "Wrong again. Moving to next question")
             nextQuestion()
 
 
 def nextQuestion():
-    """Go to next question or display results."""
-    global question_number, attempt
-    question_number += 1
-    attempt = 1
-    if question_number < 10:
-        displayProblem()
-    else:
+    global questionNum, attempt, num1, num2, operation
+
+    questionNum += 1
+
+    if questionNum > 10:
         displayResults()
+        return
+
+    attempt = 1
+    num1 = randomInt(level)
+    num2 = randomInt(level)
+    operation = decideOperation()
+
+    displayProblem()
 
 
 def displayResults():
-    """Show final results."""
-    clear_window()
+    clearWindow()
 
     grade = ""
     if score >= 90:
         grade = "A+"
-    elif score >= 75:
+    elif score >= 80:
         grade = "A"
-    elif score >= 60:
+    elif score >= 70:
         grade = "B"
-    elif score >= 40:
+    elif score >= 60:
         grade = "C"
     else:
-        grade = "F"
+        grade = "D"
 
-    tk.Label(root, text="🎉 QUIZ COMPLETED 🎉", font=("Arial", 18, "bold"), fg="#4CAF50", bg="#F2F2F2").pack(pady=20)
-    tk.Label(root, text=f"Your Final Score: {score}/100", font=("Arial", 14), bg="#F2F2F2").pack(pady=10)
-    tk.Label(root, text=f"Your Grade: {grade}", font=("Arial", 14, "bold"), fg="#1E88E5", bg="#F2F2F2").pack(pady=10)
+    result_title = tk.Label(root, text="QUIZ RESULTS", font=("Arial", 22, "bold"), fg="white", bg="#003366")
+    result_title.pack(fill="x", pady=10)
+    fadeIn(result_title)
 
-    tk.Button(root, text="Play Again", width=15, font=("Arial", 12),
-              bg="#AED581", activebackground="#9CCC65", command=displayMenu).pack(pady=10)
-    tk.Button(root, text="Exit", width=15, font=("Arial", 12),
-              bg="#EF9A9A", activebackground="#E57373", command=root.destroy).pack(pady=10)
+    tk.Label(root, text=f"Final Score: {score}/100", font=("Arial", 20)).pack(pady=10)
+    tk.Label(root, text=f"Your Grade: {grade}", font=("Arial", 20)).pack(pady=10)
+
+    tk.Button(root, text="Play Again", bg="#336699", fg="white", width=15, command=displayMenu).pack(pady=5)
+    tk.Button(root, text="Quit", bg="red", fg="white", width=15, command=root.destroy).pack(pady=5)
 
 
-def start_quiz(level):
-    """Initialize quiz settings and start."""
-    global difficulty, score, question_number, attempt
-    difficulty = level
+def startQuiz(selectedLevel):
+    global level, score, questionNum, attempt, num1, num2, operation
+
+    level = selectedLevel
     score = 0
-    question_number = 0
+    questionNum = 1
     attempt = 1
+
+    num1 = randomInt(level)
+    num2 = randomInt(level)
+    operation = decideOperation()
+
     displayProblem()
 
 
-def clear_window():
-    """Remove all widgets."""
+def clearWindow():
     for widget in root.winfo_children():
         widget.destroy()
 
 
-# ---------------------------
-# GUI Setup
-# ---------------------------
-root = tk.Tk()
-root.title("Maths Quiz App")
-root.geometry("420x420")
-root.resizable(False, False)
-root.config(bg="#F2F2F2")
+# -------------------------
+# MAIN WINDOW
+# -------------------------
 
-answer_entry = tk.Entry(root, font=("Arial", 14), justify="center", width=10)
+root = tk.Tk()
+root.title("Arithmetic Quiz Game")
+root.geometry("500x350")
+root.configure(bg="#e6f0ff")
 
 displayMenu()
 
 root.mainloop()
+
+   
+   
+
+   
